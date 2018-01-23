@@ -1,0 +1,271 @@
+EuphoriaTest Queries:
+
+create table TicketDetails(
+Id int primary key identity(1,1) not null,
+TicketNumber nvarchar(max) not null,
+UniqueReferenceIDToEmail int null,
+fk_AssignedToAgent int null,
+InitialStatus nvarchar(25) null,
+TicketNotes nvarchar(max) null,
+TicketSubject nvarchar(max) null,
+fk_TopicSummary int null,
+fk_Priority int null,
+DateCreated datetime null,
+DateModified datetime null,
+SendEmailNotifications char null,
+SendSMSNotifications char null,
+)
+
+alter table TicketDetails
+add constraint [fk_AssignedToAgent_AgentDetails] foreign key (fk_AssignedToAgent) references AgentDetails(Id)
+alter table TicketDetails
+add constraint [fk_TopicSummary_TopicSummary] foreign key (fk_TopicSummary) references TopicSummary(Id)
+alter table TicketDetails
+add constraint [fk_Priority_Priorities] foreign key (fk_Priority) references Priorities(Id)
+--------------------------------------------------------------------------------------------
+create table AgentDetails(
+Id int primary key identity(1,1) not null,
+FirstName nvarchar(25) not null,
+LastName nvarchar(25) not null,
+UserId nvarchar(30) not null,
+Password nvarchar(max) not null,
+fk_Client int null,
+EmailId nvarchar(75) not null,
+DateCreated datetime null,
+fk_AgentRoles int not null,
+UserStatus char not null,
+UserRoleExpiryInDays int null
+)
+alter table AgentDetails
+add UserRoleExpiryInDays int null
+
+alter table AgentDetails
+add constraint [fk_Client_AgentDetails] foreign key (fk_Client) references ClientDetails(Id)
+alter table AgentDetails
+add constraint [fk_AgentRoles_AgentDetails] foreign key (fk_AgentRoles) references UserRoles(Id)
+-------------------------------------------------------------------------------------------
+create table TopicSummary(
+Id int primary key identity(1,1) not null,
+TopicName nvarchar(125) not null,
+Description nvarchar(max) null,
+DateCreated datetime null,
+DateModified datetime null,
+fk_TopicCreatedBy int null,
+constraint [uk_TopicName_TopicSummary] unique(TopicName)
+)
+alter table TopicSummary
+add constraint [fk_TopicCreatedBy_TopicSummary] foreign key (fk_TopicCreatedBy) references AgentDetails(Id)
+//Added a new column 'fk_MembersUnderTopic'
+alter table topicsummary
+add fk_MembersUnderTopic int foreign key references AgentDetails(Id)
+alter table TopicSummary
+add SLADaysForTopic int null
+
+--------------------------------------------------------------------------------------------
+create  table TicketLifeCycle(
+Id int primary key identity(1,1) not null,
+TicketNumber nvarchar(max) not null,
+fk_TicketStatus int not null,
+fk_AssignedOwnerName int null,
+fk_AssignedToTopic int null,
+fk_AssignedToPersonInTopic int null,
+fk_AssignedToAgent int null,
+SLAStartDate datetime null,
+SLAEndDateForTopic datetime null,
+SLAEndDateForPriority datetime null,
+PendingApproval char null
+)
+
+
+alter table TicketLifeCycle
+add constraint [fk_AssignedOwnerName_AgentDetails] foreign key (fk_AssignedOwnerName) references AgentDetails(Id)
+alter table TicketLifeCycle
+add constraint [fk_AssignedToTopic_TopicSummary] foreign key (fk_AssignedToTopic) references TopicSummary(Id)
+alter table TicketLifeCycle
+add constraint [fk_AssignedToPersonInTopic_TopicSummary] foreign key (fk_AssignedToPersonInTopic) references TopicSummary(Id)
+alter table TicketLifeCycle
+add constraint [fk_TicketStatus_TickeStatuses] foreign key (fk_TicketStatus) references TickeStatuses(Id)
+---------------------------------------------------------------------------------------------
+create table Priorities(
+Id int primary key identity(1,1) not null,
+Priority nvarchar(15) Not null,
+SLADays int null
+)
+
+---------------------------------------------------------------------------------------------
+create table ServiceLevelAgreementPolicies(
+Id int primary key identity(1,1) not null,
+Name nvarchar(125) not null,
+Summary nvarchar(max) null,
+fk_Priority int not null,
+fk_OperationalHours int null,
+ResponseTimeInMinutes int null,
+ResponseTimeInHours int null,
+ResponseTimeInDays int null,
+ResponseTimeInMonths int null,
+ResolvedTimeInMinutes int null,
+ResolvedTimeInHours int null,
+ResolvedTimeInDays int null,
+ResolvedTimeInMonths int null,
+EscalationEmailToBeSent char null,
+SLAViolated char null,
+constraint [uk_Name_ServiceLevelAgreementPolicies] unique(Name)
+)
+alter table ServiceLevelAgreementPolicies
+add constraint [fk_Priority_ServiceLevelAgreementPolicies] foreign key (fk_Priority) references Priorities(Id)
+alter table ServiceLevelAgreementPolicies
+add constraint [fk_OperationalHours_ServiceLevelAgreementPolicies] foreign key (fk_OperationalHours) references OperationalHours(Id)
+
+---------------------------------------------------------------------------------------------
+create table SLAEscalationDetails(
+Id int primary key identity(1,1) not null,
+fk_ResponseEscalateRule int null,
+fk_ResolvedEscalateRule int null,
+AssignedTo nvarchar(75) null,
+fk_TicketDetails int null,
+fk_TicketCycleDetails int null,
+LevelOfEscalation int null
+)
+
+alter table SLAEscalationDetails
+add constraint [fk_ResponseEscalateRule_SLAEscalationDetails] foreign key (fk_ResponseEscalateRule) references ResponseEscalateRule(Id)
+alter table SLAEscalationDetails
+add constraint [fk_ResolvedEscalateRule_SLAEscalationDetails] foreign key (fk_ResolvedEscalateRule) references ResolvedEscalateRule(Id)
+alter table SLAEscalationDetails
+add constraint [fk_TicketDetails_SLAEscalationDetails] foreign key (fk_TicketDetails) references TicketDetails(Id)
+alter table SLAEscalationDetails
+add constraint [fk_TicketCycleDetails_SLAEscalationDetails] foreign key (fk_TicketCycleDetails) references TicketLifeCycle(Id)
+---------------------------------------------------------------------------------------------
+create table ResponseEscalateRule(
+Id int primary key identity(1,1) not null,
+EscalateRule nvarchar(50) not null,
+Comments nvarchar(256) null
+)
+---------------------------------------------------------------------------------------------
+create table ResolvedEscalateRule(
+Id int primary key identity(1,1) not null,
+EscalateRule nvarchar(50) not null,
+Comments nvarchar(256) null
+)
+---------------------------------------------------------------------------------------------
+create table UserRoles(
+Id int primary key identity(1,1) not null,
+RoleName nvarchar(30) not null,
+RoleSummary nvarchar(256) null,
+constraint [uk_RoleName_UserRoles] unique(RoleName) 
+)
+---------------------------------------------------------------------------------------------
+create table OperationalHours(
+Id int primary key identity(1,1) not null,
+OperationName nvarchar(75) not null,
+NumberfHoursPerDay int null,
+Comments nvarchar(125) null,
+constraint [uk_OperationName_OperationalHours] unique(OperationName)
+)
+
+----------------------------------------------------------------------------------------------
+create table GroupDetails(
+Id int primary key identity(1,1) not null,
+GroupName nvarchar(75) unique not null,
+Description nvarchar(max) null,
+)
+
+-----------------------------------------------------------------------------------------------
+create table ClientDetails(
+Id int primary key identity(1,1) not null,
+ClientName nvarchar(75) unique not null,
+Summary nvarchar(max) null
+)
+
+-----------------------------------------------------------------------------------------------
+create table TickeStatuses(
+Id int primary key identity(100,100) not null,
+StatusName nvarchar(25)not null,
+DateCreated datetime not null,
+DateModified datetime null,
+ModifiedByUser nvarchar(75) null
+)
+
+-----------------------------------------------------------------------------------------------
+create table Country(
+Id int primary key identity(1,1) not null,
+CountryName nvarchar(50) not null unique,
+CountrySTDCode nvarchar(10) not null unique,
+)
+
+-----------------------------------------------------------------------------------------------
+create table UserContacts(
+Id int primary key identity(1,1) not null,
+Name nvarchar(75) not null,
+Country int null foreign key references Country(Id),
+MobileNumber VARCHAR(10) unique(Country,MobileNumber) null,
+EmailId nvarchar(75) not null unique check(EmailId like '%_@_%_._%'),
+Company nvarchar(125) null,
+DateCreated datetime not null,
+DateModified datetime null,
+)
+
+----------------------------------------------------------------------------------------------
+create table SendEmailsToUsers(
+Id int primary key identity(1,1) not null,
+TicketNumber varchar(12) not null,
+EmailTo nvarchar(100) not null check(EmailTo like '%_@_%_._%'),
+EmailType varchar(10) Not Null check(EmailType in ('CC','BCC')),
+EmailFrom nvarchar(100) not null check(EmailFrom like '%_@_%_._%'),
+EmailId nvarchar(100) Not null check(EmailId like '%_@_%_._%'),
+Sent char not null check(Sent in ('Y','N')),
+RequestCreatedDateTime datetime not null,
+DateModified datetime null,
+UrgencyFlag bit not null check(UrgencyFlag in (1,0)),
+RequestId nvarchar(max) null,
+AckSuccessIdFromProvider nvarchar(max) null,
+EmailSentOn datetime null,
+AckFailureIdFromProvider nvarchar(max) null
+)
+
+---------------------------------------------------------------------------------------------
+Create table UserMailBox(
+Id bigint identity(1,1) unique NOT NULL,
+ReceivedToEmail nvarchar(75) null check(ReceivedToEmail like '%_@_%_._%'),
+ReceivedFromEmail nvarchar(75) null check(ReceivedFromEmail like '%_@_%_._%'),
+UniqueReferenceId int not null,
+AttachmentCount int null,
+DateCreated datetime not null DEFAULT(getdate()),
+FK_AttachmentDetails BIGINT null,
+UrgencyFlag bit null,
+Subject varchar(255) not null,
+BodyContent varchar(max) null,
+DateModified datetime null,
+Processed char null check(Processed in ('Y','N'))
+CONSTRAINT [PK_UserDetails] PRIMARY KEY CLUSTERED 
+(
+ [Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF,
+ IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON,
+ ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+---------------------------------------------------------------------------------------------
+create table UserAttachmentFiles(
+Id bigint NOT NULL,
+RowId uniqueIdentifier ROWGUIDCOL NOT NULL UNIQUE DEFAULT NEWSEQUENTIALID(),
+ContentType varchar(50),
+Size bigint not null,
+Description varchar(max),
+Attachments varbinary(max) NOT NULL,
+DateCreated datetime NOT NULL DEFAULT(getdate())
+CONSTRAINT [PK_Files] PRIMARY KEY CLUSTERED 
+(
+ [RowId] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF,
+ IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON,
+ ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+----------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------
+Adding a constraint:
+CONSTRAINT [FK_dbo.Posts_dbo.Blogs_BlogId] FOREIGN KEY ([BlogId]) REFERENCES [dbo].[Blogs] ([BlogId]) ON DELETE CASCADE 
+http://www.itprotoday.com/software-development/should-i-use-identity-or-not
+----------------------------------------------------------------------------------------------

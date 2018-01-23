@@ -1,0 +1,113 @@
+Service Broker Queries:
+
+Creating Service Broker Objects in sql:
+
+Important: Run the below command for authorization and to receive messages from queues:
+ALTER AUTHORIZATION ON DATABASE::EuphoriaTest TO sa
+
+create message type
+[//ET/CreateTicket/RequestMessage]
+VALIDATION = Well_Formed_XML;
+
+create message type
+[//ET/CreateTicket/ReplyMessage]
+VALIDATION = Well_Formed_XML;
+GO
+
+CREATE CONTRACT [//ET/CreateTicket/TicketContract]
+([//ET/CreateTicket/RequestMessage] SENT BY INITIATOR,
+[//ET/CreateTicket/ReplyMessage] SENT BY TARGET);
+GO
+
+CREATE QUEUE InitiatorQueueET;
+CREATE SERVICE [//ET/CreateTicket/InitiatorService]
+ON QUEUE InitiatorQueueET;
+GO
+
+CREATE QUEUE TargetQueueET;
+CREATE SERVICE [//ET/CreateTicket/TargetService]
+ON QUEUE TargetQueueET
+	([//ET/CreateTicket/TicketContract]);
+GO
+
+-----------------------------------------------------------------------
+DECLARE @InitReqDlgHandle uniqueidentifier;
+DECLARE @RequestMsg nvarchar(100);
+
+BEGIN TRANSACTION;
+BEGIN DIALOG @InitReqDlgHandle
+	FROM SERVICE
+	[//ET/CreateTicket/InitiatorService]
+	TO SERVICE
+	N'//ET/CreateTicket/TargetService'
+	ON CONTRACT
+	[//ET/CreateTicket/TicketContract]
+	WITH
+		ENCRYPTION=OFF;
+
+SELECT @RequestMsg=
+		N'<RequestMsg>Message for Target Service</RequestMsg>';
+
+	SEND ON CONVERSATION @InitReqDlgHandle
+		MESSAGE TYPE
+		[//ET/CreateTicket/RequestMessage]
+		(@RequestMsg);
+
+SELECT @RequestMsg AS SentRequestMsg;
+COMMIT TRANSACTION;
+GO
+-----------------------------------------------------------------------
+Receive Request and Send a Reply:
+
+DECLARE @RecvReqDlgHandle uniqueidentifier;
+DECLARE @RecvRequestMsg nvarchar(100);
+DECLARE @RecvRequestMsgName sysname;
+
+BEGIN TRANSACTION;
+WAITFOR
+	(RECEIVE TOP(1)
+	@RecvReqDlgHandle = conversation_handle,
+	@RecvRequestMsg = message_body,
+	@RecvRequestMsgName = message_type_name
+	FROM TargetQueueET
+	), TIMEOUT 1000;
+
+SELECT @RecvRequestMsg AS ReceivedReqMsg;
+
+IF @RecvRequestMsgName = N'//ET/CreateTicket/RequestMessage'
+BEGIN 
+	DECLARE @ReplyMsg NVARCHAR(100);
+
+	SELECT @ReplyMsg=
+		N'<ReplyMsg>Message to Initiator Service</ReplyMsg>';
+	SEND ON CONVERSATION @RecvReqDlgHandle
+		MESSAGE TYPE
+		[//ET/CreateTicket/ReplyMessage]
+		(@ReplyMsg);
+		END CONVERSATION @RecvReqDlgHandle;
+END
+
+SELECT @ReplyMsg AS SentReplyMsg;
+COMMIT TRANSACTION;
+GO
+
+-------------------------------------------------------------------------
+Receive Reply and End the CONVERSATION:
+
+DECLARE @RecvReplyDlgHandle uniqueidentifier;
+DECLARE @RecvReplyMsg nvarchar(100);
+
+BEGIN TRANSACTION;
+WAITFOR
+	(RECEIVE TOP(1)
+	@RecvReplyDlgHandle = conversation_handle,
+	@RecvReplyMsg = message_body
+	FROM InitiatorQueueET
+	), TIMEOUT 1000;
+END CONVERSATION @RecvReplyDlgHandle;
+SELECT @RecvReplyMsg AS ReceivedReplyMsg;
+
+COMMIT TRANSACTION;
+GO
+
+-------------------------------------------------------------------------

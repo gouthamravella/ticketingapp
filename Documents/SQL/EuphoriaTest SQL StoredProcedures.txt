@@ -1,0 +1,36 @@
+USE [TicketGen]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROC [dbo].[SPInsertUserMailboxDetails]
+@Subject varchar(255),
+@ToEmail nvarchar(100),
+@FromEmail nvarchar(100),
+@AttachmentCount int,
+@UrgencyFlag bit,
+@Body varchar(max)
+AS
+SET NOCOUNT ON
+BEGIN
+	DECLARE @TicketNumber INT= 1000
+	IF NOT EXISTS(SELECT * FROM [TTB\ravellag].[UserMailBox] where UniqueReferenceId=@TicketNumber)
+		BEGIN
+		Insert into [TTB\ravellag].[UserMailBox] (Subject,ReceivedToEmail,ReceivedFromEmail,UniqueReferenceId,AttachmentCount,UrgencyFlag,BodyContent,DateCreated) 
+        values (@Subject,@ToEmail,@FromEmail,@TicketNumber,@AttachmentCount,@UrgencyFlag,@Body,GETDATE())
+		END
+	ELSE
+		BEGIN
+		Insert into [TTB\ravellag].[UserMailBox] (Subject,ReceivedToEmail,ReceivedFromEmail,UniqueReferenceId,AttachmentCount,UrgencyFlag,BodyContent,DateCreated) 
+		values (@Subject,@ToEmail,@FromEmail, (SELECT MAX(UniqueReferenceId)+1 from [TTB\ravellag].[UserMailBox]),@AttachmentCount,@UrgencyFlag,@Body,GETDATE())
+		END
+
+END
+
+GO
+
+----------------------------------------------------------------------------------------------------------------

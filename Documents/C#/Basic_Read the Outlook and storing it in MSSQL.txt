@@ -1,0 +1,113 @@
+Microsoft.Office.Interop.Outlook.Application outlk = new Microsoft.Office.Interop.Outlook.ApplicationClass();
+        MailItem t;
+        string constr = "Data Source=.\\SQLEXPRESS;Initial Catalog=backstage;Integrated Security=True";
+        SqlDataAdapter da = new SqlDataAdapter("select * from mail", "Data Source=.\\SQLEXPRESS;Initial Catalog=backstage;Integrated Security=True");
+        SqlDataAdapter da2 = new SqlDataAdapter("select * from attachment", "Data Source=.\\SQLEXPRESS;Initial Catalog=backstage;Integrated Security=True");
+        DataSet ds = new DataSet();
+        DataSet ds2 = new DataSet();
+		
+		private void button1_Click(object sender, EventArgs e)
+        {
+            getOutlook();
+ 
+        }
+        public void getOutlook()
+        {
+            SqlCommandBuilder cb = new SqlCommandBuilder(da);
+            da.UpdateCommand = cb.GetUpdateCommand();
+            SqlCommandBuilder cb2 = new SqlCommandBuilder(da2);
+            da2.UpdateCommand = cb2.GetUpdateCommand();
+            da.Fill(ds);
+            da2.Fill(ds2);
+            NameSpace NS = outlk.GetNamespace("MAPI");
+            MAPIFolder inboxFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+            getFolderMail(inboxFld, "Inbox");
+            MAPIFolder junkFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderJunk);
+            getFolderMail(junkFld, "Junk");
+            MAPIFolder sentFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderSentMail);
+            getFolderMail(sentFld, "Sent");
+            MAPIFolder outboxFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderOutbox);
+            getFolderMail(outboxFld, "Outbox");
+            MAPIFolder draftFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderDrafts);
+            getFolderMail(draftFld, "Draft");
+            MAPIFolder deleteFld = NS.GetDefaultFolder(OlDefaultFolders.olFolderDeletedItems);
+            getFolderMail(deleteFld, "Delete");
+ 
+        }
+ 
+public void getFolderMail(MAPIFolder folder, string foldername)
+        {
+ 
+            int mailID = 0;
+            for (int i = 1; i <= folder.Items.Count; i++)
+            {
+                try
+                {
+                    DataRow dr = ds.Tables[0].NewRow();
+                    t = (MailItem)folder.Items[i];
+ 
+                    int size = t.Size / 1000;
+                    string sizeinK = size.ToString() + "K";
+                    dr["folder"] = foldername;
+                    dr["fromName"] = t.SenderName;
+                    dr["fromID"] = t.SenderEmailAddress;
+                    dr["toName"] = t.ReceivedByName;
+                    dr["toID"] = t.To;
+                    dr["cc"] = t.CC;
+                    dr["bcc"] = t.BCC;
+                    dr["subject"] = t.Subject;
+                    dr["body"] = t.Body;
+                    dr["date"] = t.SentOn ;
+                    dr["attachment"] = t.Attachments.Count;
+                    dr["size"] = sizeinK;
+                    dr["readStatus"] = t.UnRead;
+ 
+                    ds.Tables [0].Rows.Add(dr);
+                    da.Update(ds);
+                    if (t.Attachments.Count > 0)
+                    {
+                        mailID = getMailID();
+                        for (int j = 1; j <= t.Attachments.Count; j++)
+                        {
+                            DataRow dra = ds2.Tables[0].NewRow();
+ 
+                            dra["mailID"] = mailID;
+ 
+                            dra["Name"] = t.Attachments[j].DisplayName;
+                            string filePath =Path.GetDirectoryName(System.Windows.Forms.Application.StartupPath ) +t.Attachments[j].FileName;  // @"G:/prabu"
+                            t.Attachments[j].SaveAsFile(filePath);
+                            FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                            int length = (int)fs.Length;
+                            byte[] content = new byte[length];
+                            fs.Read(content, 0, length);
+                            dra["contents"] = content;
+                            dra["contentSize"] = length;
+ 
+                            fs.Close();
+                            FileInfo f = new FileInfo(filePath);
+                            f.Delete();
+                            ds2.Tables[0].Rows.Add(dra);
+                            da2.Update(ds2);
+                        }
+                    }
+                }
+                catch (System .Exception  ex)
+                { 
+ 
+                }
+ 
+            }
+        }
+ 
+ public int getMailID()
+        {
+            int mailID = 0;
+            SqlDataAdapter da1 = new SqlDataAdapter("select max(mailID) as newMailID from mail", constr);
+            DataSet ds1 = new DataSet();
+            da1.Fill(ds1);
+            foreach (DataRow dr in ds1.Tables[0].Rows)
+            {
+                mailID =Convert .ToInt32 ( dr["newMailID"]);
+            }
+            return mailID;
+        }

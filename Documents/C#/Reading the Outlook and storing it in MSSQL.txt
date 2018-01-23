@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Data.OleDb;
+using System.Data;
+using System.ComponentModel;
+using Microsoft.Office.Interop.Outlook;
+
+namespace EmailClient
+{
+    class Class1
+    {
+        OleDbConnection Oconn;
+        DataTable DT;
+        OleDbDataAdapter DA;
+        public void GetData(string Query)
+        {
+            try
+            {
+                Oconn = new OleDbConnection(@"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\db3.mdb");
+                DA = new OleDbDataAdapter(Query, Oconn);
+                OleDbCommandBuilder Ocommand = new OleDbCommandBuilder(DA);
+                DT = new DataTable();
+                DT.Locale = System.Globalization.CultureInfo.InvariantCulture;
+                DA.Fill(DT);
+            }
+            catch (System.Exception ex)
+            {
+                throw new System.Exception(ex.ToString(), ex);
+            }
+        }
+        public void GetEmailAndInsert()
+        {
+            try
+            {
+                Application Myoutlook = new Application();
+                NameSpace OutlookNS = Myoutlook.GetNamespace("MAPI");
+                MAPIFolder inboxfolder = OutlookNS.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+        
+                foreach (object obj in inboxfolder.Items)
+                {
+                    MailItem item = obj as MailItem;
+                    if (item != null && item.UnRead == true)
+                    {
+                        GetData("Select * from MailTable");
+                        int i = DT.Rows.Count;
+                        int month = DateTime.Now.Month;
+                        int year = DateTime.Now.Year;
+                        string Ticket = "AIB" + month + year + "-" + i;
+                        string Received = item.ReceivedTime.ToShortDateString();
+                        GetData("Insert Into MailTable Values ('" + Ticket + "','" + Received + "','" + item.SenderEmailAddress + "','"
+                              + item.SenderName + "','" + item.Body.Trim() + "')");
+                        DA.Update(DT);
+                    }
+                    item.UnRead = false;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                throw new System.Exception(ex.ToString(), ex);
+            }
+        }
+
+    }
+}
+
+
+namespace EmailClient
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Class1 GetEmail = new Class1();
+            GetEmail.GetEmailAndInsert();
+        }
+    }
+}

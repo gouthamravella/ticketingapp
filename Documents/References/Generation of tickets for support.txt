@@ -1,0 +1,33 @@
+WebApi:
+http://www.c-sharpcorner.com/article/learn-web-api-using-sql-helper-class/
+
+http://www.c-sharpcorner.com/UploadFile/015c2d/ticket-generation-using-C-Sharp-in-net/
+http://niravdaraniya.blogspot.in/2014/06/ticket-generation-using-cnet_10.html
+
+Generation of tickets for support:
+https://gist.github.com/dhlavaty/6340937
+
+https://www.devexpress.com/Support/Center/Question/Details/Q409768/ticket-demo-asp-net-mvc-site-on-c
+
+SignalR:
+http://www.c-sharpcorner.com/article/understanding-signalr-from-scratch/
+
+SQL Dependency:
+https://blog.jsinh.in/monitoring-data-change-using-sqldependency-and-c/#.Wgfrk9CWbIV
+http://sylvester-lee.blogspot.in/2013/05/query-notification-service-broker.html
+http://www.dreamincode.net/forums/topic/156991-using-sqldependency-to-monitor-sql-database-changes/
+https://sqluninterrupted.com/2012/09/14/sending-sql-notification-to-c-application-using-service-broker/
+https://technet.microsoft.com/en-us/library/bb839489(v=sql.105).aspx
+https://technet.microsoft.com/en-us/library/ms166094(v=sql.105).aspx
+https://github.com/jdaigle/servicebroker.net
+http://blog.extreme-advice.com/2013/02/15/find-service-broker-object-like-contract-message-type-service-name-queue-name-in-sql-server/
+http://blog.maskalik.com/sql-server-service-broker/scalable-webservice-calls-from-database/
+
+Getting latest inserted record from SQL db without using sql dependency:
+https://www.aspsnippets.com/Articles/Getting-ID-of-the-newly-inserted-record-in-SQL-Server-Database-using-ADO.Net.aspx
+
+
+For Storing the images using C#:
+SQLFileStream- Varbinary(max)
+https://blog.tallan.com/2011/08/22/using-sqlfilestream-with-c-to-access-sql-server-filestream-data/
+https://www.mikesdotnetting.com/article/54/getting-the-identity-of-the-most-recently-added-record
